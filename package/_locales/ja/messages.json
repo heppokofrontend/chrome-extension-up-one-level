@@ -1,0 +1,17 @@
+{
+  "extName": {
+    "message": "1つ上の階層に移動するだけのやつ ※上へボタン的な"
+  },
+  "extDesc": {
+    "message": "閲覧中のWebページから上位ディレクトリへ移動するだけのボタンです。"
+  },
+  "shortcut": {
+    "message": "ショートカットキー："
+  },
+  "shortcut_false": {
+    "message": "無効"
+  },
+  "shortcut_true": {
+    "message": "有効（Alt＋↑ / cmd＋↑）"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "extName": {
+    "message": "The Up One Level Button for browser"
+  },
+  "extDesc": {
+    "message": "The extension is simply for navigating from the current web page to its parent directory."
+  },
+  "shortcut": {
+    "message": "Shortcut key: "
+  },
+  "shortcut_false": {
+    "message": "Disabled"
+  },
+  "shortcut_true": {
+    "message": "Enabled (Alt+↑ / cmd+↑)"
+  }
+}
