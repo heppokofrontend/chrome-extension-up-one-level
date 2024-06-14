@@ -8,10 +8,16 @@
   "shortcut": {
     "message": "Shortcut key: "
   },
-  "shortcut_false": {
+  "shortcut_enabled": {
+    "message": "Enabled (Alt+↑ / cmd+↑)"
+  },
+  "shortcut_disabled": {
     "message": "Disabled"
   },
-  "shortcut_true": {
-    "message": "Enabled (Alt+↑ / cmd+↑)"
+  "shortcut_to_enabled": {
+    "message": "Enabled"
+  },
+  "shortcut_to_disabled": {
+    "message": "Disabled"
   }
 }

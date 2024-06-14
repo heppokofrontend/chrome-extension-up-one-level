@@ -17,6 +17,7 @@
 
 {
   const contextMenuId = 'heppokofrontend-up-one-level';
+  const contextMenuIdForToggle = 'heppokofrontend-up-one-level-toggle';
   const sendEnabled = (tab: chrome.tabs.Tab | undefined, state: boolean, init?: boolean) => {
     if (tab) {
       if (tab.url?.startsWith('http') && typeof tab.id === 'number') {
@@ -27,10 +28,17 @@
     }
   };
 
-  chrome.contextMenus.create({
+  const parentId = chrome.contextMenus.create({
     id: contextMenuId,
-    title: `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage('shortcut_false')}`,
+    title: `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage('shortcut_disabled')}`,
     contexts: ['all'],
+  });
+
+  chrome.contextMenus.create({
+    id: contextMenuIdForToggle,
+    title: chrome.i18n.getMessage('shortcut_to_enabled'),
+    contexts: ['all'],
+    parentId,
   });
 
   chrome.storage.local.get('state', function (data) {
@@ -45,8 +53,12 @@
       if (tab.url?.startsWith('http') && typeof tab.id === 'number') {
         chrome.contextMenus.update(contextMenuId, {
           title: `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage(
-            state ? 'shortcut_true' : 'shortcut_false',
+            state ? 'shortcut_enabled' : 'shortcut_disabled',
           )}`,
+          contexts: ['all'],
+        });
+        chrome.contextMenus.update(contextMenuIdForToggle, {
+          title: chrome.i18n.getMessage(state ? 'shortcut_to_disabled' : 'shortcut_to_enabled'),
           contexts: ['all'],
         });
 
@@ -64,8 +76,12 @@
       chrome.storage.local.set({ state });
       chrome.contextMenus.update(contextMenuId, {
         title: `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage(
-          state ? 'shortcut_true' : 'shortcut_false',
+          state ? 'shortcut_enabled' : 'shortcut_disabled',
         )}`,
+        contexts: ['all'],
+      });
+      chrome.contextMenus.update(contextMenuIdForToggle, {
+        title: chrome.i18n.getMessage(state ? 'shortcut_to_disabled' : 'shortcut_to_enabled'),
         contexts: ['all'],
       });
 

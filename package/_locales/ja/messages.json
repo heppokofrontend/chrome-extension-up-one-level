@@ -8,10 +8,16 @@
   "shortcut": {
     "message": "ショートカットキー："
   },
-  "shortcut_false": {
+  "shortcut_enabled": {
+    "message": "有効（Alt＋↑ / cmd＋↑）"
+  },
+  "shortcut_disabled": {
     "message": "無効"
   },
-  "shortcut_true": {
-    "message": "有効（Alt＋↑ / cmd＋↑）"
+  "shortcut_to_enabled": {
+    "message": "有効にする"
+  },
+  "shortcut_to_disabled": {
+    "message": "無効にする"
   }
 }
