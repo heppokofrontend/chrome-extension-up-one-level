@@ -43,14 +43,6 @@ const run = (tabId: number) => {
     return _url;
   })();
 
-  if (window.location.href === document.referrer) {
-    console.warn(
-      'Chrome Extension Up One Level: Current directory seems to be the root directory because the URL remains unchanged before transitioning.',
-    );
-
-    return;
-  }
-
   try {
     sessionStorage.setItem(storageKey, url);
   } catch {}
