@@ -43,14 +43,6 @@ const run = (tabId: number) => {
     return _url;
   })();
 
-  if (window.location.href === document.referrer) {
-    console.warn(
-      'Chrome Extension Up One Level: Current directory seems to be the root directory because the URL remains unchanged before transitioning.',
-    );
-
-    return;
-  }
-
   try {
     sessionStorage.setItem(storageKey, url);
   } catch {}
@@ -60,6 +52,27 @@ const run = (tabId: number) => {
 
 let tabIdCache = -1;
 const onkeydownHandler = (e: KeyboardEvent) => {
+  const targetIsEditableElement = (target: EventTarget | null) => {
+    const { activeElement } = document;
+
+    if (activeElement === null || target !== activeElement) {
+      return false;
+    }
+
+    const isEditableElement =
+      activeElement instanceof HTMLElement &&
+      !['inherit', 'false'].includes(activeElement.contentEditable);
+    const isFormControls = ['input', 'textarea', 'select'].includes(
+      activeElement.tagName.toLowerCase(),
+    );
+
+    return isEditableElement || isFormControls;
+  };
+
+  if (targetIsEditableElement(e.target)) {
+    return;
+  }
+
   if (e.altKey || e.metaKey) {
     if (e.key === 'ArrowUp') {
       run(tabIdCache);
