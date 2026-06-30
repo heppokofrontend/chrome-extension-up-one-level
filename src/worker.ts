@@ -1,100 +1,114 @@
-{
-  chrome.action.onClicked.addListener(() => {
-    new Promise(async () => {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        lastFocusedWindow: true,
-      });
+import {
+  MENU_ITEM_ID,
+  MENU_ITEM_ID_TOGGLE,
+  STORAGE_KEY_STATE,
+  type WorkerToContentMessage,
+} from './constants';
 
-      if (tab.url?.startsWith('http') && typeof tab.id === 'number') {
-        chrome.tabs.sendMessage(tab.id, { tabId: tab.id, taskId: 'run' }).catch(console.log);
-      }
+const getMenuTitle = (isShortcutEnabled: boolean) =>
+  `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage(
+    isShortcutEnabled ? 'shortcut_enabled' : 'shortcut_disabled',
+  )}`;
+
+const getToggleTitle = (isShortcutEnabled: boolean) =>
+  chrome.i18n.getMessage(isShortcutEnabled ? 'shortcut_to_disabled' : 'shortcut_to_enabled');
+
+const checkIsShortcutEnabled = async () => {
+  const data = await chrome.storage.local.get(STORAGE_KEY_STATE);
+  return data[STORAGE_KEY_STATE] === true;
+};
+
+const sendToTab = async (tab: chrome.tabs.Tab | undefined, message: WorkerToContentMessage) => {
+  if (
+    tab === undefined ||
+    tab.id === undefined ||
+    tab.url === undefined ||
+    !tab.url.startsWith('http')
+  ) {
+    return;
+  }
+  try {
+    await chrome.tabs.sendMessage(tab.id, message);
+  } catch (error) {
+    console.warn('[Chrome Extension Up One Level] sendMessage failed', error);
+  }
+};
+
+const updateMenus = async (isShortcutEnabled: boolean) => {
+  try {
+    await chrome.contextMenus.update(MENU_ITEM_ID, { title: getMenuTitle(isShortcutEnabled) });
+    await chrome.contextMenus.update(MENU_ITEM_ID_TOGGLE, {
+      title: getToggleTitle(isShortcutEnabled),
     });
+  } catch (error) {
+    console.warn('[Chrome Extension Up One Level] contextMenus.update failed', error);
+  }
+};
 
-    return true;
-  });
-}
-
-{
-  const contextMenuId = 'heppokofrontend-up-one-level';
-  const contextMenuIdForToggle = 'heppokofrontend-up-one-level-toggle';
-  const sendEnabled = (tab: chrome.tabs.Tab | undefined, state: boolean, init?: boolean) => {
-    if (tab) {
-      if (tab.url?.startsWith('http') && typeof tab.id === 'number') {
-        chrome.tabs
-          .sendMessage(tab.id, { tabId: tab.id, taskId: init ? 'init' : 'update', state })
-          .catch(console.log);
-      }
-    }
-  };
-
-  const parentId = chrome.contextMenus.create({
-    id: contextMenuId,
-    title: `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage('shortcut_disabled')}`,
-    contexts: ['all'],
-  });
-
+chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: contextMenuIdForToggle,
-    title: chrome.i18n.getMessage('shortcut_to_enabled'),
+    id: MENU_ITEM_ID,
+    title: getMenuTitle(false),
     contexts: ['all'],
-    parentId,
   });
-
-  chrome.storage.local.get('state', function (data) {
-    const state = Boolean(data.state);
-
-    new Promise(async () => {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        lastFocusedWindow: true,
-      });
-
-      if (tab.url?.startsWith('http') && typeof tab.id === 'number') {
-        chrome.contextMenus.update(contextMenuId, {
-          title: `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage(
-            state ? 'shortcut_enabled' : 'shortcut_disabled',
-          )}`,
-          contexts: ['all'],
-        });
-        chrome.contextMenus.update(contextMenuIdForToggle, {
-          title: chrome.i18n.getMessage(state ? 'shortcut_to_disabled' : 'shortcut_to_enabled'),
-          contexts: ['all'],
-        });
-
-        sendEnabled(tab, state, true);
-      }
-    });
-
-    return true;
+  chrome.contextMenus.create({
+    id: MENU_ITEM_ID_TOGGLE,
+    parentId: MENU_ITEM_ID,
+    title: getToggleTitle(false),
+    contexts: ['all'],
   });
+});
 
-  chrome.contextMenus.onClicked.addListener((_, tab) => {
-    chrome.storage.local.get('state', (data) => {
-      const state = !Boolean(data.state);
+// On worker startup (cold start) sync the menu titles with the stored state.
+void (async () => {
+  const isShortcutEnabled = await checkIsShortcutEnabled();
+  await updateMenus(isShortcutEnabled);
+})();
 
-      chrome.storage.local.set({ state });
-      chrome.contextMenus.update(contextMenuId, {
-        title: `${chrome.i18n.getMessage('shortcut')}${chrome.i18n.getMessage(
-          state ? 'shortcut_enabled' : 'shortcut_disabled',
-        )}`,
-        contexts: ['all'],
-      });
-      chrome.contextMenus.update(contextMenuIdForToggle, {
-        title: chrome.i18n.getMessage(state ? 'shortcut_to_disabled' : 'shortcut_to_enabled'),
-        contexts: ['all'],
-      });
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id === undefined) {
+    return;
+  }
 
-      sendEnabled(tab, state);
-    });
-  });
+  void sendToTab(tab, { tabId: tab.id, taskId: 'run' });
+});
 
-  chrome.runtime.onMessage.addListener((message, sender) => {
-    if (message.type === 'getTabId' && sender?.tab) {
-      chrome.storage.local.get('state', function (data) {
-        const state = Boolean(data.state);
-        sendEnabled(sender.tab, state, true);
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== MENU_ITEM_ID_TOGGLE) return;
+
+  void (async () => {
+    const nextIsShortcutEnabled = !(await checkIsShortcutEnabled());
+
+    await chrome.storage.local.set({ [STORAGE_KEY_STATE]: nextIsShortcutEnabled });
+    await updateMenus(nextIsShortcutEnabled);
+
+    if (tab?.id !== undefined) {
+      await sendToTab(tab, {
+        tabId: tab.id,
+        taskId: 'update',
+        isShortcutEnabled: nextIsShortcutEnabled,
       });
     }
-  });
-}
+  })();
+});
+
+chrome.runtime.onMessage.addListener((message: unknown, sender) => {
+  const tab = sender.tab;
+
+  if (
+    typeof message !== 'object' ||
+    message === null ||
+    !('type' in message) ||
+    message.type !== 'getTabId' ||
+    tab?.id === undefined
+  ) {
+    return;
+  }
+
+  const tabId = tab.id;
+
+  void (async () => {
+    const isShortcutEnabled = await checkIsShortcutEnabled();
+    await sendToTab(tab, { tabId, taskId: 'init', isShortcutEnabled });
+  })();
+});
