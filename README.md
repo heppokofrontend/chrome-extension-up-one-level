@@ -1,6 +1,6 @@
 # The Up One Level Button for browser
 
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Maintainability](https://api.codeclimate.com/v1/badges/f3f661f7cfc01e6e2178/maintainability)](https://codeclimate.com/github/heppokofrontend/chrome-extension-up-one-level/maintainability)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 The browser version of the 'Up One Level' button found in Windows Explorer.
 
