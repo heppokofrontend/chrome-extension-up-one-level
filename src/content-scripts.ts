@@ -1,4 +1,5 @@
 import {
+  INJECTED_MARKER_KEY,
   SESSION_KEY_PREFIX,
   type ContentToWorkerMessage,
   type WorkerToContentMessage,
@@ -104,7 +105,25 @@ const checkIsWorkerMessage = (message: unknown): message is WorkerToContentMessa
   return 'isShortcutEnabled' in message && typeof message.isShortcutEnabled === 'boolean';
 };
 
-chrome.runtime.onMessage.addListener((message: unknown) => {
+const requestTabId = () => {
+  // 拡張機能のリロード対策
+  try {
+    const message: ContentToWorkerMessage = {
+      type: 'getTabId',
+    };
+    void chrome.runtime.sendMessage(message).catch(() => undefined);
+  } catch {
+    // do nothing
+  }
+};
+
+// 拡張機能が無効化されても、既に開いていたタブの isolated world は破棄されず
+// 幽霊化したまま残ることがある。再度注入されたときは、常に自分が最新のリスナー
+// 一式に置き換わり、前のインスタンス（幽霊化した可能性がある方）の後片付けを行う。
+const markedWindow = window as typeof window & { [INJECTED_MARKER_KEY]?: () => void };
+markedWindow[INJECTED_MARKER_KEY]?.();
+
+const onWorkerMessage = (message: unknown) => {
   if (!checkIsWorkerMessage(message)) return;
   currentTabId = message.tabId;
 
@@ -124,19 +143,14 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
   if (message.isShortcutEnabled) {
     window.addEventListener('keydown', onKeyDown);
   }
-});
-
-const requestTabId = () => {
-  // 拡張機能のリロード対策
-  try {
-    const message: ContentToWorkerMessage = {
-      type: 'getTabId',
-    };
-    void chrome.runtime.sendMessage(message).catch(() => undefined);
-  } catch {
-    // do nothing
-  }
 };
 
+chrome.runtime.onMessage.addListener(onWorkerMessage);
 requestTabId();
 window.addEventListener('focus', requestTabId);
+
+markedWindow[INJECTED_MARKER_KEY] = () => {
+  chrome.runtime.onMessage.removeListener(onWorkerMessage);
+  window.removeEventListener('focus', requestTabId);
+  window.removeEventListener('keydown', onKeyDown);
+};
