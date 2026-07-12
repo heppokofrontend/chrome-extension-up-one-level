@@ -1,7 +1,7 @@
 {
   "name": "chrome-extension-up-one-level",
   "description": "The browser version of the 'Up One Level' button found in Windows Explorer.",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "author": "heppokofrontend",
   "bugs": {
     "url": "https://github.com/heppokofrontend/chrome-extension-up-one-level/issues"
