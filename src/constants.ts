@@ -1,3 +1,5 @@
+export const INJECTED_MARKER_KEY = '__heppokofrontend.up-one-level.injected__';
+
 export const MENU_ITEM_ID = 'heppokofrontend.up-one-level';
 export const MENU_ITEM_ID_TOGGLE = 'heppokofrontend.up-one-level.toggle';
 export const STORAGE_KEY_STATE = 'state';
