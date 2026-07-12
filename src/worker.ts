@@ -10,8 +10,11 @@ const checkIsShortcutEnabled = async () => {
   return data[STORAGE_KEY_STATE] === true;
 };
 
+const isSupportedTabUrl = (url: string | undefined) =>
+  url !== undefined && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://'));
+
 const sendToTab = async (tab: chrome.tabs.Tab | undefined, message: WorkerToContentMessage) => {
-  if (tab?.id === undefined || tab.url?.startsWith('http') !== true) {
+  if (tab?.id === undefined || !isSupportedTabUrl(tab.url)) {
     return;
   }
   try {
@@ -20,6 +23,10 @@ const sendToTab = async (tab: chrome.tabs.Tab | undefined, message: WorkerToCont
     console.warn('[Chrome Extension Up One Level] sendMessage failed', error);
   }
 };
+
+// chrome-extension:// などの拡張内パネルにはメニューを出さない。
+// file:// はユーザーが「ファイルの URL へのアクセスを許可」した場合のみ動作する。
+const MENU_DOCUMENT_URL_PATTERNS = ['http://*/*', 'https://*/*', 'file:///*'];
 
 // contextMenus API のエラーは Chrome 122 以前では Promise の reject にならず
 // chrome.runtime.lastError にしか現れないため、コールバック形式でラップする。
@@ -55,6 +62,7 @@ const rebuildMenus = async (isShortcutEnabled: boolean) => {
       isShortcutEnabled ? 'shortcut_enabled' : 'shortcut_disabled',
     )}`,
     contexts: ['all'],
+    documentUrlPatterns: MENU_DOCUMENT_URL_PATTERNS,
   });
   await createMenu({
     id: MENU_ITEM_ID_TOGGLE,
@@ -63,6 +71,7 @@ const rebuildMenus = async (isShortcutEnabled: boolean) => {
       isShortcutEnabled ? 'shortcut_to_disabled' : 'shortcut_to_enabled',
     ),
     contexts: ['all'],
+    documentUrlPatterns: MENU_DOCUMENT_URL_PATTERNS,
   });
 };
 
@@ -72,7 +81,7 @@ void (async () => {
 })();
 
 const injectIntoExistingTabs = async () => {
-  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*', 'file:///*'] });
 
   for (const tab of tabs) {
     if (tab.id === undefined) {
